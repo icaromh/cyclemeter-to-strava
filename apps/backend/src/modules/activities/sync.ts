@@ -4,6 +4,9 @@ import { stravaActivities } from "../../db/schema";
 import { getUserWithFreshToken } from "../strava/tokens";
 import { listAthleteActivities, stravaId } from "../strava/client";
 
+const perPage = 100;
+const maxPages = 20;
+
 export async function syncLast180Days(userId: string) {
   const user = await getUserWithFreshToken(userId);
   const windowEnd = new Date();
@@ -12,8 +15,8 @@ export async function syncLast180Days(userId: string) {
   let page = 1;
   let syncedCount = 0;
 
-  while (true) {
-    const activities = await listAthleteActivities(user.accessToken, { after, page, perPage: 100 });
+  while (page <= maxPages) {
+    const activities = await listAthleteActivities(user.accessToken, { after, page, perPage });
     if (activities.length === 0) break;
 
     for (const activity of activities) {
@@ -51,7 +54,7 @@ export async function syncLast180Days(userId: string) {
       syncedCount += 1;
     }
 
-    if (activities.length < 100) break;
+    if (activities.length < perPage) break;
     page += 1;
   }
 
@@ -89,4 +92,3 @@ export async function listCandidateActivities(userId: string, startDate: Date, w
     .from(stravaActivities)
     .where(and(eq(stravaActivities.userId, userId), gte(stravaActivities.startDate, start), sql`${stravaActivities.startDate} <= ${end}`));
 }
-
