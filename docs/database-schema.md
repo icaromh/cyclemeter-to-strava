@@ -17,11 +17,12 @@ Guarda identidade local e credenciais Strava.
 | Campo | Tipo | Notas |
 | --- | --- | --- |
 | id | uuid | pk |
-| strava_athlete_id | bigint | unique, not null |
+| strava_athlete_id | text | unique, not null |
 | username | text | nullable |
 | access_token | text | not null |
 | refresh_token | text | not null |
 | token_expires_at | timestamptz | not null |
+| accepted_scopes | text | not null, lista separada por virgulas |
 | created_at | timestamptz | default now |
 | updated_at | timestamptz | default now |
 
@@ -37,7 +38,7 @@ Cache local das atividades sincronizadas.
 | --- | --- | --- |
 | id | uuid | pk |
 | user_id | uuid | fk users.id, not null |
-| strava_activity_id | bigint | not null |
+| strava_activity_id | text | not null |
 | name | text | not null |
 | sport_type | text | nullable |
 | start_date | timestamptz | not null |
@@ -106,8 +107,8 @@ Resultado do envio ao Strava.
 | --- | --- | --- |
 | id | uuid | pk |
 | uploaded_file_id | uuid | fk uploaded_files.id, not null |
-| strava_upload_id | bigint | nullable |
-| strava_activity_id | bigint | nullable |
+| strava_upload_id | text | nullable |
+| strava_activity_id | text | nullable |
 | external_id | text | not null |
 | upload_status | upload_status | not null, default pending |
 | error_message | text | nullable |
@@ -119,4 +120,3 @@ Indices:
 - unique `strava_uploads_uploaded_file_id_unique` em `uploaded_file_id`.
 - unique `strava_uploads_external_id_unique` em `external_id`.
 - `strava_uploads_status_idx` em `upload_status`.
-

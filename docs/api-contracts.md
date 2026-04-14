@@ -134,7 +134,7 @@ Response `200`:
       },
       "matchedActivity": {
         "id": "b5ab902c-25e1-4daa-9c8c-39d905162159",
-        "stravaActivityId": 1234567890,
+        "stravaActivityId": "1234567890",
         "name": "Evening Run",
         "startDate": "2026-04-11T17:21:00.000Z",
         "distanceMeters": 8009.8,
@@ -199,7 +199,7 @@ Response `202`:
     {
       "id": "970eff26-5c4d-4828-87ee-f240308f0a07",
       "uploadedFileId": "9d89b1c3-0a54-43ab-a7b8-bdcbb55d4bd2",
-      "stravaUploadId": 987654321,
+      "stravaUploadId": "987654321",
       "externalId": "strava-sync-9d89b1c3-0a54-43ab-a7b8-bdcbb55d4bd2",
       "uploadStatus": "submitted"
     }
@@ -217,11 +217,10 @@ Response `200`:
 {
   "id": "970eff26-5c4d-4828-87ee-f240308f0a07",
   "uploadedFileId": "9d89b1c3-0a54-43ab-a7b8-bdcbb55d4bd2",
-  "stravaUploadId": 987654321,
-  "stravaActivityId": 1234567891,
+  "stravaUploadId": "987654321",
+  "stravaActivityId": "1234567891",
   "uploadStatus": "uploaded",
   "errorMessage": null,
   "updatedAt": "2026-04-14T08:34:00.000Z"
 }
 ```
-
