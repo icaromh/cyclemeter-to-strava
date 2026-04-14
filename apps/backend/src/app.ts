@@ -13,7 +13,13 @@ export const app = new Hono();
 app.use("*", corsMiddleware);
 app.use("*", loggerMiddleware);
 
-app.get("/health", (c) => c.json({ status: "ok" }));
+app.get("/health", (c) =>
+  c.json({
+    status: "ok",
+    service: "strava-sync-backend",
+    environment: process.env.NODE_ENV ?? "development"
+  })
+);
 
 app.route("/auth", authRoutes);
 app.route("/activities", activitiesRoutes);
