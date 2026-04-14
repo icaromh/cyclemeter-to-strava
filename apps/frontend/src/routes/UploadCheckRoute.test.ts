@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import type { FileCheckResult } from "@strava-sync/shared";
 import {
   filterFileChecks,
+  getCurrentUploadStatus,
   getUploadableFileIds,
+  getUploadErrors,
   getUploadProgressValue,
   isUploadTerminal
 } from "../lib/uploadCheck";
@@ -34,6 +36,45 @@ describe("UploadCheckRoute rules", () => {
     expect(getUploadProgressValue("uploaded")).toBe(100);
     expect(getUploadProgressValue("duplicate")).toBe(100);
     expect(getUploadProgressValue("failed")).toBe(100);
+  });
+
+  it("uses polled upload status over the initial upload batch status", () => {
+    expect(
+      getCurrentUploadStatus(
+        {
+          id: "20000000-0000-4000-8000-000000000001",
+          uploadedFileId: "00000000-0000-4000-8000-000000000001",
+          stravaUploadId: "987",
+          externalId: "missing.fit",
+          uploadStatus: "submitted"
+        },
+        {
+          id: "20000000-0000-4000-8000-000000000001",
+          uploadedFileId: "00000000-0000-4000-8000-000000000001",
+          stravaUploadId: "987",
+          stravaActivityId: "123",
+          uploadStatus: "uploaded",
+          errorMessage: null,
+          updatedAt: "2026-04-14T08:05:00.000Z"
+        }
+      )
+    ).toBe("uploaded");
+  });
+
+  it("normalizes partial upload errors", () => {
+    expect(getUploadErrors()).toEqual([]);
+    expect(
+      getUploadErrors({
+        uploads: [],
+        errors: [
+          {
+            uploadedFileId: "00000000-0000-4000-8000-000000000002",
+            code: "not_uploadable",
+            message: "Only not_found files can be uploaded"
+          }
+        ]
+      })
+    ).toHaveLength(1);
   });
 });
 
