@@ -4,12 +4,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node --env-file=../../.env --watch --import tsx src/server.ts",
+    "dev": "node --env-file-if-exists=../../.env --watch --import tsx src/server.ts",
     "build": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "node --env-file=../../.env --import tsx src/db/migrate.ts"
+    "db:migrate": "node --env-file-if-exists=../../.env --import tsx src/db/migrate.ts"
   },
   "dependencies": {
     "@hono/node-server": "^1.13.8",
