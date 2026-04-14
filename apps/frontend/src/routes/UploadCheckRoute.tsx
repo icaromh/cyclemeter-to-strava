@@ -3,7 +3,14 @@ import { useMutation, useQueries } from "@tanstack/react-query";
 import type { FileCheckResult, UploadItem, UploadStatusResponse } from "@strava-sync/shared";
 import { Button } from "../components/ui/Button";
 import { api } from "../lib/api";
-import { filterFileChecks, getUploadableFileIds, getUploadProgressValue, isUploadTerminal } from "../lib/uploadCheck";
+import {
+  filterFileChecks,
+  getCurrentUploadStatus,
+  getUploadableFileIds,
+  getUploadErrors,
+  getUploadProgressValue,
+  isUploadTerminal
+} from "../lib/uploadCheck";
 
 const filters = ["all", "not_found", "match_confirmed", "match_probable", "parse_error"] as const;
 
@@ -12,14 +19,22 @@ export function UploadCheckRoute() {
   const [results, setResults] = useState<FileCheckResult[]>([]);
   const [filter, setFilter] = useState<(typeof filters)[number]>("all");
   const [uploads, setUploads] = useState<UploadItem[]>([]);
+  const [uploadBatchErrors, setUploadBatchErrors] = useState<ReturnType<typeof getUploadErrors>>([]);
 
   const check = useMutation({
     mutationFn: api.checkFiles,
-    onSuccess: (data) => setResults(data.results)
+    onSuccess: (data) => {
+      setResults(data.results);
+      setUploads([]);
+      setUploadBatchErrors([]);
+    }
   });
   const uploadMissing = useMutation({
     mutationFn: api.uploadMissing,
-    onSuccess: (data) => setUploads(data.uploads)
+    onSuccess: (data) => {
+      setUploads(data.uploads);
+      setUploadBatchErrors(getUploadErrors(data));
+    }
   });
 
   const uploadStatuses = useQueries({
@@ -27,7 +42,7 @@ export function UploadCheckRoute() {
       queryKey: ["upload-status", upload.id],
       queryFn: () => api.uploadStatus(upload.id),
       refetchInterval: (query: { state: { data: UploadStatusResponse | undefined } }) => {
-        const status = query.state.data?.uploadStatus ?? upload.uploadStatus;
+        const status = getCurrentUploadStatus(upload, query.state.data);
         return isUploadTerminal(status) ? false : 1000;
       }
     }))
@@ -35,6 +50,13 @@ export function UploadCheckRoute() {
 
   const visibleResults = useMemo(() => filterFileChecks(results, filter), [filter, results]);
   const missingIds = useMemo(() => getUploadableFileIds(results), [results]);
+
+  function handleFileSelection(fileList: FileList | null) {
+    setFiles(Array.from(fileList ?? []));
+    setResults([]);
+    setUploads([]);
+    setUploadBatchErrors([]);
+  }
 
   return (
     <section className="stack">
@@ -44,12 +66,18 @@ export function UploadCheckRoute() {
       </div>
       {check.error ? <div className="error">{check.error.message}</div> : null}
       {uploadMissing.error ? <div className="error">{uploadMissing.error.message}</div> : null}
+      {uploadBatchErrors.length > 0 ? (
+        <div className="error">
+          {uploadBatchErrors.length} arquivo(s) nao foram enviados:{" "}
+          {uploadBatchErrors.map((error) => error.message).join("; ")}
+        </div>
+      ) : null}
       <div className="dropzone">
         <input
           type="file"
           multiple
           accept=".gpx,.tcx,.fit"
-          onChange={(event) => setFiles(Array.from(event.target.files ?? []))}
+          onChange={(event) => handleFileSelection(event.target.files)}
         />
         <div className="row">
           <Button disabled={files.length === 0 || check.isPending} onClick={() => check.mutate(files)}>
@@ -83,7 +111,7 @@ export function UploadCheckRoute() {
           <h2>Uploads</h2>
           {uploads.map((upload, index) => {
             const status = uploadStatuses[index]?.data;
-            const uploadStatus = status?.uploadStatus ?? upload.uploadStatus;
+            const uploadStatus = getCurrentUploadStatus(upload, status);
             return (
               <div className="upload-row" key={upload.id}>
                 <div className="row spread">

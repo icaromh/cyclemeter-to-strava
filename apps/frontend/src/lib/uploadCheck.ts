@@ -1,4 +1,10 @@
-import type { FileCheckResult, UploadStatus } from "@strava-sync/shared";
+import type {
+  FileCheckResult,
+  UploadItem,
+  UploadMissingResponse,
+  UploadStatus,
+  UploadStatusResponse
+} from "@strava-sync/shared";
 
 export const uploadTerminalStatuses = ["uploaded", "duplicate", "failed"] as const satisfies readonly UploadStatus[];
 
@@ -12,6 +18,14 @@ export function filterFileChecks(results: FileCheckResult[], status: FileCheckRe
 
 export function getUploadableFileIds(results: FileCheckResult[]) {
   return results.filter((result) => result.matchStatus === "not_found").map((result) => result.uploadedFileId);
+}
+
+export function getCurrentUploadStatus(upload: UploadItem, status?: UploadStatusResponse) {
+  return status?.uploadStatus ?? upload.uploadStatus;
+}
+
+export function getUploadErrors(response?: UploadMissingResponse) {
+  return response?.errors ?? [];
 }
 
 export function getUploadProgressValue(status: UploadStatus) {
