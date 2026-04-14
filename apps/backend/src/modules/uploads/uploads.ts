@@ -29,7 +29,7 @@ export async function submitMissingUploads(userId: string, uploadedFileIds: stri
       continue;
     }
 
-    const externalId = `strava-sync-${uploadedFileId}`;
+    const externalId = externalIdForUpload(file.originalFilename);
     const dataType = file.originalFilename.split(".").pop()?.toLowerCase();
     if (!dataType || !["gpx", "tcx", "fit"].includes(dataType)) {
       errors.push({ uploadedFileId, code: "unsupported_file_type", message: "Tipo de arquivo nao suportado para upload." });
@@ -44,7 +44,7 @@ export async function submitMissingUploads(userId: string, uploadedFileIds: stri
         filename: file.originalFilename,
         dataType,
         externalId,
-        name: file.originalFilename.replace(/\.(gpx|tcx|fit)$/i, "")
+        name: activityNameForUpload(file.originalFilename)
       });
     } catch (error) {
       errors.push({
@@ -57,12 +57,13 @@ export async function submitMissingUploads(userId: string, uploadedFileIds: stri
 
     const stravaUploadId = stravaId(stravaUpload.id, stravaUpload.id_str);
     const status = mapStravaUploadStatus(stravaUpload);
+    const stravaActivityId = stravaId(stravaUpload.activity_id, stravaUpload.activity_id_str) ?? extractActivityIdFromUploadError(stravaUpload.error);
     const [upload] = await db
       .insert(stravaUploads)
       .values({
         uploadedFileId,
         stravaUploadId,
-        stravaActivityId: stravaId(stravaUpload.activity_id, stravaUpload.activity_id_str),
+        stravaActivityId,
         externalId,
         uploadStatus: status,
         errorMessage: stravaUpload.error ?? null,
@@ -72,7 +73,8 @@ export async function submitMissingUploads(userId: string, uploadedFileIds: stri
         target: [stravaUploads.uploadedFileId],
         set: {
           stravaUploadId,
-          stravaActivityId: stravaId(stravaUpload.activity_id, stravaUpload.activity_id_str),
+          stravaActivityId,
+          externalId,
           uploadStatus: status,
           errorMessage: stravaUpload.error ?? null,
           updatedAt: new Date()
@@ -116,10 +118,11 @@ export async function getUploadStatus(userId: string, uploadId: string) {
   if (upload.stravaUploadId && ["pending", "submitted", "processing"].includes(upload.uploadStatus)) {
     const remote = await getStravaUpload(user.accessToken, upload.stravaUploadId);
     const status = mapStravaUploadStatus(remote);
+    const stravaActivityId = stravaId(remote.activity_id, remote.activity_id_str) ?? extractActivityIdFromUploadError(remote.error);
     const [updated] = await db
       .update(stravaUploads)
       .set({
-        stravaActivityId: stravaId(remote.activity_id, remote.activity_id_str),
+        stravaActivityId,
         uploadStatus: status,
         errorMessage: remote.error ?? null,
         updatedAt: new Date()
@@ -155,4 +158,18 @@ export function mapStravaUploadStatus(upload: StravaUpload) {
   if (status.includes("ready")) return "uploaded" as const;
   if (status.includes("process")) return "processing" as const;
   return "submitted" as const;
+}
+
+export function externalIdForUpload(originalFilename: string) {
+  return originalFilename.split(/[\\/]/).at(-1)?.trim() || originalFilename;
+}
+
+export function activityNameForUpload(originalFilename: string) {
+  const externalId = externalIdForUpload(originalFilename);
+  const withoutExtension = externalId.replace(/\.(gpx|tcx|fit)$/i, "");
+  return withoutExtension.split("-")[0]?.trim() || withoutExtension;
+}
+
+export function extractActivityIdFromUploadError(errorMessage: string | null | undefined) {
+  return errorMessage?.match(/\/activities\/(\d+)/)?.[1] ?? null;
 }

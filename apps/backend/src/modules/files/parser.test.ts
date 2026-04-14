@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { parseActivityFile } from "./parser";
+import { normalizeDurationSeconds, parseActivityFile } from "./parser";
 
 const fixturesDir = fileURLToPath(new URL("../../test/fixtures/", import.meta.url));
 
@@ -48,5 +48,11 @@ describe("parseActivityFile", () => {
     expect(parsed.startDate).toBeNull();
     expect(parsed.durationSeconds).toBeNull();
     expect(parsed.distanceMeters).toBeGreaterThan(0);
+  });
+
+  it("normalizes decimal FIT durations to integer seconds", () => {
+    expect(normalizeDurationSeconds(3537.131)).toBe(3537);
+    expect(normalizeDurationSeconds("3537.631")).toBe(3538);
+    expect(normalizeDurationSeconds("not-a-duration")).toBeNull();
   });
 });

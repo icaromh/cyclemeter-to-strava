@@ -24,6 +24,36 @@ export const activitySyncResponseSchema = z.object({
 });
 export type ActivitySyncResponse = z.infer<typeof activitySyncResponseSchema>;
 
+export const activitySyncRequestSchema = z.object({
+  windowStart: z.string().min(1),
+  windowEnd: z.string().min(1)
+});
+export type ActivitySyncRequest = z.infer<typeof activitySyncRequestSchema>;
+
+export const stravaActivityListItemSchema = z.object({
+  id: z.string().uuid(),
+  stravaActivityId: z.string(),
+  externalId: z.string().nullable(),
+  name: z.string(),
+  sportType: z.string().nullable(),
+  startDate: z.string().datetime(),
+  timezone: z.string().nullable(),
+  distanceMeters: z.number().nullable(),
+  movingTimeSeconds: z.number().int().nullable(),
+  elapsedTimeSeconds: z.number().int().nullable(),
+  syncedAt: z.string().datetime()
+});
+export type StravaActivityListItem = z.infer<typeof stravaActivityListItemSchema>;
+
+export const activitiesListResponseSchema = z.object({
+  items: z.array(stravaActivityListItemSchema),
+  total: z.number().int().nonnegative(),
+  limit: z.number().int().positive(),
+  offset: z.number().int().nonnegative(),
+  nextOffset: z.number().int().nonnegative().nullable()
+});
+export type ActivitiesListResponse = z.infer<typeof activitiesListResponseSchema>;
+
 export const parsedActivityFileSchema = z.object({
   startDate: z.string().datetime().nullable(),
   distanceMeters: z.number().nullable(),
@@ -113,4 +143,3 @@ export const uploadStatusResponseSchema = z.object({
   updatedAt: z.string().datetime()
 });
 export type UploadStatusResponse = z.infer<typeof uploadStatusResponseSchema>;
-

@@ -46,6 +46,7 @@ export const stravaActivities = pgTable("strava_activities", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   stravaActivityId: text("strava_activity_id").notNull(),
+  externalId: text("external_id"),
   name: text("name").notNull(),
   sportType: text("sport_type"),
   startDate: timestamp("start_date", { withTimezone: true }).notNull(),
@@ -60,7 +61,8 @@ export const stravaActivities = pgTable("strava_activities", {
     table.userId,
     table.stravaActivityId
   ),
-  userStartDateIdx: index("strava_activities_user_start_date_idx").on(table.userId, table.startDate)
+  userStartDateIdx: index("strava_activities_user_start_date_idx").on(table.userId, table.startDate),
+  userExternalIdIdx: index("strava_activities_user_external_id_idx").on(table.userId, table.externalId)
 }));
 
 export const uploadedFiles = pgTable("uploaded_files", {
@@ -124,4 +126,3 @@ export const uploadedFilesRelations = relations(uploadedFiles, ({ one, many }) =
   checks: many(fileChecks),
   upload: one(stravaUploads)
 }));
-

@@ -23,6 +23,11 @@ function numberOrNull(value: unknown) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+export function normalizeDurationSeconds(value: unknown) {
+  const parsed = numberOrNull(value);
+  return parsed === null ? null : Math.round(parsed);
+}
+
 function dateOrNull(value: unknown) {
   if (typeof value !== "string" && typeof value !== "number" && !(value instanceof Date)) return null;
   const parsed = new Date(value);
@@ -86,7 +91,7 @@ async function parseFit(buffer: Buffer): Promise<ParsedFile> {
   return {
     startDate: dateOrNull(start),
     distanceMeters: numberOrNull(session.total_distance),
-    durationSeconds: numberOrNull(session.total_elapsed_time ?? session.total_timer_time),
+    durationSeconds: normalizeDurationSeconds(session.total_elapsed_time ?? session.total_timer_time),
     sportType: typeof session.sport === "string" ? session.sport : null
   };
 }

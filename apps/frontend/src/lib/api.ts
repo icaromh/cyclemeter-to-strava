@@ -1,5 +1,7 @@
 import type {
+  ActivitiesListResponse,
   ActivitySummaryResponse,
+  ActivitySyncRequest,
   ActivitySyncResponse,
   FileCheckResponse,
   FileChecksListResponse,
@@ -42,8 +44,19 @@ export function createApiClient(baseUrl = apiUrl, fetcher: Fetcher = fetch) {
     syncActivities() {
       return request<ActivitySyncResponse>("/activities/sync-180d", { method: "POST", body: JSON.stringify({}) });
     },
+    syncActivitiesRange(input: ActivitySyncRequest) {
+      return request<ActivitySyncResponse>("/activities/sync", { method: "POST", body: JSON.stringify(input) });
+    },
     activitySummary() {
       return request<ActivitySummaryResponse>("/activities/summary");
+    },
+    listActivities(options: { limit?: number; offset?: number; search?: string; sportType?: string } = {}) {
+      const params = new URLSearchParams();
+      params.set("limit", String(options.limit ?? 50));
+      params.set("offset", String(options.offset ?? 0));
+      if (options.search) params.set("search", options.search);
+      if (options.sportType) params.set("sportType", options.sportType);
+      return request<ActivitiesListResponse>(`/activities?${params.toString()}`);
     },
     checkFiles(files: File[]) {
       const form = new FormData();

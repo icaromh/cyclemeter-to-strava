@@ -40,15 +40,43 @@ pnpm test
 pnpm build
 ```
 
-## Worktrees dos agentes
+## Backup do banco local
 
-Depois de integrar o bootstrap em um branch base, crie os worktrees:
+Para gerar uma copia do estado atual do PostgreSQL local:
 
 ```bash
-git worktree add ../strava-sync-core -b codex/agent-backend-core
-git worktree add ../strava-sync-strava -b codex/agent-strava
-git worktree add ../strava-sync-files -b codex/agent-files-matching
-git worktree add ../strava-sync-frontend -b codex/agent-frontend
+pnpm db:dump
 ```
 
-Os prompts estao em `agents/`.
+O arquivo sera criado em `.data/db-dumps/` no formato `custom` do `pg_dump`, por exemplo:
+
+```text
+.data/db-dumps/strava_sync_20260414_181500.dump
+```
+
+Esse formato e o mais pratico para restaurar em outro PostgreSQL, incluindo Supabase:
+
+```bash
+pg_restore \
+  --no-owner \
+  --no-privileges \
+  --clean \
+  --if-exists \
+  --dbname "postgresql://USER:PASSWORD@HOST:5432/postgres" \
+  .data/db-dumps/strava_sync_YYYYMMDD_HHMMSS.dump
+```
+
+Se precisar de um arquivo SQL legivel, rode:
+
+```bash
+FORMAT=sql pnpm db:dump
+```
+
+O script aceita variaveis para casos especiais:
+
+```bash
+OUTPUT_DIR=/tmp/strava-dumps FORMAT=custom pnpm db:dump
+POSTGRES_SERVICE=postgres POSTGRES_USER=strava_sync POSTGRES_DB=strava_sync pnpm db:dump
+```
+
+Atencao: o dump contem tokens OAuth do Strava nas colunas `users.access_token` e `users.refresh_token`. Nao compartilhe esse arquivo sem sanitizar ou rotacionar as credenciais.

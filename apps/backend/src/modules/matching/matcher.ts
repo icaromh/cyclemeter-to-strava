@@ -1,10 +1,41 @@
 import type { MatchStatus } from "@strava-sync/shared";
-import { listCandidateActivities } from "../activities/sync";
+import { findActivityByExternalId, listCandidateActivities } from "../activities/sync";
 import type { ParsedFile } from "../files/parser";
+import { findCompletedUploadByExternalId } from "../uploads/lookup";
 
 type Candidate = Awaited<ReturnType<typeof listCandidateActivities>>[number];
 
-export async function matchFile(userId: string, parsed: ParsedFile, parseError?: string | null) {
+export async function matchFile(
+  userId: string,
+  parsed: ParsedFile,
+  parseError?: string | null,
+  options: { originalFilename?: string | null } = {}
+) {
+  const externalIdCandidate = normalizeExternalId(options.originalFilename);
+  if (externalIdCandidate) {
+    const externalIdMatch = await findActivityByExternalId(userId, externalIdCandidate);
+    if (externalIdMatch) {
+      return {
+        status: "match_confirmed" as MatchStatus,
+        confidenceScore: 1,
+        reason: `External ID corresponde ao nome do arquivo: ${externalIdCandidate}.`,
+        candidate: externalIdMatch as Candidate
+      };
+    }
+
+    const uploadMatch = await findCompletedUploadByExternalId(userId, externalIdCandidate);
+    if (uploadMatch) {
+      const stravaReference = uploadMatch.stravaActivityId ? ` Atividade Strava: ${uploadMatch.stravaActivityId}.` : "";
+      const duplicateReason = uploadMatch.uploadStatus === "duplicate" ? "Upload anterior foi marcado como duplicado pelo Strava." : "Arquivo ja foi enviado ao Strava anteriormente.";
+      return {
+        status: "match_confirmed" as MatchStatus,
+        confidenceScore: 1,
+        reason: `${duplicateReason} External ID: ${externalIdCandidate}.${stravaReference}`,
+        candidate: uploadMatch.activity as Candidate | null
+      };
+    }
+  }
+
   if (parseError || !parsed.startDate) {
     return {
       status: "parse_error" as MatchStatus,
@@ -55,6 +86,12 @@ export async function matchFile(userId: string, parsed: ParsedFile, parseError?:
   };
 }
 
+export function normalizeExternalId(filename: string | null | undefined) {
+  if (!filename) return null;
+  const lastSegment = filename.split(/[\\/]/).at(-1)?.trim();
+  return lastSegment || null;
+}
+
 function scoreCandidate(parsed: ParsedFile, candidate: Candidate) {
   const candidateDistance = candidate.distanceMeters === null ? null : Number(candidate.distanceMeters);
   const distanceScore = compareMetric(parsed.distanceMeters, candidateDistance, 100, 0.03);
@@ -92,4 +129,3 @@ function compareType(left: string | null, right: string | null) {
 function roundScore(score: number) {
   return Math.round(score * 10_000) / 10_000;
 }
-

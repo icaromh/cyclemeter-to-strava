@@ -18,6 +18,7 @@ CREATE TABLE "strava_activities" (
   "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
   "user_id" uuid NOT NULL REFERENCES "users"("id") ON DELETE cascade,
   "strava_activity_id" text NOT NULL,
+  "external_id" text,
   "name" text NOT NULL,
   "sport_type" text,
   "start_date" timestamptz NOT NULL,
@@ -71,6 +72,7 @@ CREATE TABLE "strava_uploads" (
 CREATE UNIQUE INDEX "users_strava_athlete_id_unique" ON "users" ("strava_athlete_id");
 CREATE UNIQUE INDEX "strava_activities_user_strava_activity_unique" ON "strava_activities" ("user_id", "strava_activity_id");
 CREATE INDEX "strava_activities_user_start_date_idx" ON "strava_activities" ("user_id", "start_date");
+CREATE INDEX "strava_activities_user_external_id_idx" ON "strava_activities" ("user_id", "external_id");
 CREATE UNIQUE INDEX "uploaded_files_user_file_hash_unique" ON "uploaded_files" ("user_id", "file_hash");
 CREATE INDEX "uploaded_files_user_created_at_idx" ON "uploaded_files" ("user_id", "created_at");
 CREATE INDEX "file_checks_uploaded_file_id_idx" ON "file_checks" ("uploaded_file_id");
@@ -78,4 +80,3 @@ CREATE INDEX "file_checks_match_status_idx" ON "file_checks" ("match_status");
 CREATE UNIQUE INDEX "strava_uploads_uploaded_file_id_unique" ON "strava_uploads" ("uploaded_file_id");
 CREATE UNIQUE INDEX "strava_uploads_external_id_unique" ON "strava_uploads" ("external_id");
 CREATE INDEX "strava_uploads_status_idx" ON "strava_uploads" ("upload_status");
-

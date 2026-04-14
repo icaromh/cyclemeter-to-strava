@@ -1,18 +1,26 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { matchFile } from "./matcher";
-import { listCandidateActivities } from "../activities/sync";
+import { matchFile, normalizeExternalId } from "./matcher";
+import { findActivityByExternalId, listCandidateActivities } from "../activities/sync";
+import { findCompletedUploadByExternalId } from "../uploads/lookup";
 
 vi.mock("../activities/sync", () => ({
+  findActivityByExternalId: vi.fn(),
   listCandidateActivities: vi.fn()
 }));
+vi.mock("../uploads/lookup", () => ({
+  findCompletedUploadByExternalId: vi.fn()
+}));
 
+const mockedFindActivityByExternalId = vi.mocked(findActivityByExternalId);
 const mockedListCandidateActivities = vi.mocked(listCandidateActivities);
+const mockedFindCompletedUploadByExternalId = vi.mocked(findCompletedUploadByExternalId);
 
 function candidate(overrides: Partial<Awaited<ReturnType<typeof listCandidateActivities>>[number]> = {}) {
   return {
     id: "00000000-0000-0000-0000-000000000001",
     userId: "00000000-0000-0000-0000-000000000002",
     stravaActivityId: "1234567890123456789",
+    externalId: null,
     name: "Morning Ride",
     sportType: "Ride",
     startDate: new Date("2026-04-10T06:31:00.000Z"),
@@ -28,7 +36,59 @@ function candidate(overrides: Partial<Awaited<ReturnType<typeof listCandidateAct
 
 describe("matchFile", () => {
   beforeEach(() => {
+    mockedFindActivityByExternalId.mockReset();
+    mockedFindActivityByExternalId.mockResolvedValue(null);
+    mockedFindCompletedUploadByExternalId.mockReset();
+    mockedFindCompletedUploadByExternalId.mockResolvedValue(null);
     mockedListCandidateActivities.mockReset();
+  });
+
+  it("normalizes uploaded filenames for external id matching", () => {
+    expect(normalizeExternalId("/tmp/uploads/Cycle-20260414-0856-51349.fit")).toBe("Cycle-20260414-0856-51349.fit");
+    expect(normalizeExternalId(" Cycle-20260414-0856-51349.fit ")).toBe("Cycle-20260414-0856-51349.fit");
+    expect(normalizeExternalId("")).toBeNull();
+  });
+
+  it("confirms a match when uploaded filename equals Strava external id", async () => {
+    mockedFindActivityByExternalId.mockResolvedValue(candidate({ externalId: "Cycle-20260414-0856-51349.fit" }));
+
+    const result = await matchFile(
+      "user-1",
+      { startDate: null, distanceMeters: null, durationSeconds: null, sportType: null },
+      null,
+      { originalFilename: "Cycle-20260414-0856-51349.fit" }
+    );
+
+    expect(mockedFindActivityByExternalId).toHaveBeenCalledWith("user-1", "Cycle-20260414-0856-51349.fit");
+    expect(mockedListCandidateActivities).not.toHaveBeenCalled();
+    expect(result.status).toBe("match_confirmed");
+    expect(result.confidenceScore).toBe(1);
+    expect(result.reason).toContain("External ID");
+  });
+
+  it("confirms a match when a previous Strava upload was marked duplicate for the filename", async () => {
+    mockedFindCompletedUploadByExternalId.mockResolvedValue({
+      externalId: "Cycle-20250801-1655-54126.fit",
+      uploadStatus: "duplicate",
+      stravaActivityId: "18106372042",
+      errorMessage: "Cycle-20250801-1655-54126.fit duplicate of <a href='/activities/18106372042' target='_blank'>Cycle</a>",
+      activity: null
+    });
+
+    const result = await matchFile(
+      "user-1",
+      { startDate: null, distanceMeters: null, durationSeconds: null, sportType: null },
+      null,
+      { originalFilename: "Cycle-20250801-1655-54126.fit" }
+    );
+
+    expect(mockedFindCompletedUploadByExternalId).toHaveBeenCalledWith("user-1", "Cycle-20250801-1655-54126.fit");
+    expect(mockedListCandidateActivities).not.toHaveBeenCalled();
+    expect(result.status).toBe("match_confirmed");
+    expect(result.confidenceScore).toBe(1);
+    expect(result.reason).toContain("duplicado pelo Strava");
+    expect(result.reason).toContain("18106372042");
+    expect(result.candidate).toBeNull();
   });
 
   it("returns parse_error when parsing failed", async () => {

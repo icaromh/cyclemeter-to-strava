@@ -21,6 +21,7 @@ export type StravaTokenResponse = {
 export type StravaActivity = {
   id: number | string;
   id_str?: string;
+  external_id?: string | null;
   name: string;
   sport_type?: string;
   type?: string;
@@ -99,12 +100,13 @@ export async function refreshAccessToken(refreshToken: string) {
   return parseStravaResponse<Omit<StravaTokenResponse, "athlete">>(response);
 }
 
-export async function listAthleteActivities(accessToken: string, options: { after: number; page: number; perPage: number }) {
+export async function listAthleteActivities(accessToken: string, options: { after: number; before?: number; page: number; perPage: number }) {
   const params = new URLSearchParams({
     after: String(options.after),
     page: String(options.page),
     per_page: String(options.perPage)
   });
+  if (options.before !== undefined) params.set("before", String(options.before));
   const response = await fetch(`${baseUrl}/athlete/activities?${params.toString()}`, {
     headers: { Authorization: `Bearer ${accessToken}` }
   });
@@ -135,4 +137,3 @@ export async function getStravaUpload(accessToken: string, uploadId: string) {
   });
   return parseStravaResponse<StravaUpload>(response);
 }
-

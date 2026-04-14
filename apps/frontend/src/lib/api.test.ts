@@ -32,6 +32,37 @@ describe("api client", () => {
     expect(requestInit.body).toBeInstanceOf(FormData);
   });
 
+  it("builds activities list query params", async () => {
+    const fetcher = vi.fn().mockResolvedValue(jsonResponse({ items: [], total: 0, limit: 50, offset: 0, nextOffset: null }));
+    const api = createApiClient("http://api.test", fetcher);
+
+    await api.listActivities({ limit: 25, offset: 50, search: "ride", sportType: "VirtualRide" });
+
+    expect(fetcher.mock.calls[0]?.[0]).toBe("http://api.test/activities?limit=25&offset=50&search=ride&sportType=VirtualRide");
+  });
+
+  it("syncs activities for a selected date range", async () => {
+    const fetcher = vi.fn().mockResolvedValue(
+      jsonResponse({
+        syncedCount: 0,
+        windowStart: "2026-04-01T00:00:00.000Z",
+        windowEnd: "2026-04-14T23:59:59.999Z",
+        lastSyncedAt: "2026-04-14T12:00:00.000Z"
+      })
+    );
+    const api = createApiClient("http://api.test", fetcher);
+
+    await api.syncActivitiesRange({ windowStart: "2026-04-01", windowEnd: "2026-04-14" });
+
+    expect(fetcher).toHaveBeenCalledWith(
+      "http://api.test/activities/sync",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ windowStart: "2026-04-01", windowEnd: "2026-04-14" })
+      })
+    );
+  });
+
   it("throws backend error envelope messages", async () => {
     const fetcher = vi.fn().mockResolvedValue(
       jsonResponse({ error: { code: "not_authenticated", message: "Connect Strava first" } }, { status: 401 })

@@ -42,7 +42,7 @@ export async function checkUploadedFiles(userId: string, files: File[]) {
         };
     const parseError = uploaded.parseError;
 
-    const match = await matchFile(userId, parsed, parseError);
+    const match = await matchFile(userId, parsed, parseError, { originalFilename: uploaded.originalFilename });
     await db.insert(fileChecks).values({
       uploadedFileId: uploaded.id,
       matchedStravaActivityId: match.candidate?.id ?? null,
@@ -80,7 +80,7 @@ async function persistNewUpload(userId: string, file: File, extension: string, b
       fileHash: hash,
       parsedStartDate: parsed.startDate,
       parsedDistanceMeters: parsed.distanceMeters === null ? null : String(parsed.distanceMeters),
-      parsedDurationSeconds: parsed.durationSeconds,
+      parsedDurationSeconds: toIntegerOrNull(parsed.durationSeconds),
       parsedSportType: parsed.sportType,
       parseStatus: parseError ? "parse_error" : "parsed",
       parseError
@@ -94,7 +94,7 @@ async function persistNewUpload(userId: string, file: File, extension: string, b
         fileSize: file.size,
         parsedStartDate: parsed.startDate,
         parsedDistanceMeters: parsed.distanceMeters === null ? null : String(parsed.distanceMeters),
-        parsedDurationSeconds: parsed.durationSeconds,
+        parsedDurationSeconds: toIntegerOrNull(parsed.durationSeconds),
         parsedSportType: parsed.sportType,
         parseStatus: parseError ? "parse_error" : "parsed",
         parseError
@@ -103,6 +103,10 @@ async function persistNewUpload(userId: string, file: File, extension: string, b
     .returning();
 
   return uploaded;
+}
+
+function toIntegerOrNull(value: number | null) {
+  return value === null ? null : Math.round(value);
 }
 
 type UploadedFileRow = NonNullable<Awaited<ReturnType<typeof persistNewUpload>>>;
