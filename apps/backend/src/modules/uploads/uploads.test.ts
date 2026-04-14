@@ -13,5 +13,12 @@ describe("mapStravaUploadStatus", () => {
   it("maps processing text to processing", () => {
     expect(mapStravaUploadStatus({ id: "1", status: "Your activity is still being processed." })).toBe("processing");
   });
-});
 
+  it("maps ready text to uploaded", () => {
+    expect(mapStravaUploadStatus({ id: "1", status: "Your activity is ready." })).toBe("uploaded");
+  });
+
+  it("maps status errors to failed", () => {
+    expect(mapStravaUploadStatus({ id: "1", status: "There was an error processing your activity." })).toBe("failed");
+  });
+});

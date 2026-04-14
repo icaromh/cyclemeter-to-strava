@@ -36,14 +36,24 @@ export async function submitMissingUploads(userId: string, uploadedFileIds: stri
       continue;
     }
 
-    const blob = new Blob([await readFile(file.storedPath)]);
-    const stravaUpload = await createStravaUpload(user.accessToken, {
-      file: blob,
-      filename: file.originalFilename,
-      dataType,
-      externalId,
-      name: file.originalFilename.replace(/\.(gpx|tcx|fit)$/i, "")
-    });
+    let stravaUpload: StravaUpload;
+    try {
+      const blob = new Blob([await readFile(file.storedPath)]);
+      stravaUpload = await createStravaUpload(user.accessToken, {
+        file: blob,
+        filename: file.originalFilename,
+        dataType,
+        externalId,
+        name: file.originalFilename.replace(/\.(gpx|tcx|fit)$/i, "")
+      });
+    } catch (error) {
+      errors.push({
+        uploadedFileId,
+        code: "strava_upload_failed",
+        message: error instanceof Error ? error.message : "Strava upload failed"
+      });
+      continue;
+    }
 
     const stravaUploadId = stravaId(stravaUpload.id, stravaUpload.id_str);
     const status = mapStravaUploadStatus(stravaUpload);
@@ -140,7 +150,9 @@ export function mapStravaUploadStatus(upload: StravaUpload) {
   if (upload.activity_id || upload.activity_id_str) return "uploaded" as const;
   if (upload.error?.toLowerCase().includes("duplicate")) return "duplicate" as const;
   if (upload.error) return "failed" as const;
-  if (status.includes("ready") || status.includes("process")) return "processing" as const;
+  if (status.includes("duplicate")) return "duplicate" as const;
+  if (status.includes("error") || status.includes("fail")) return "failed" as const;
+  if (status.includes("ready")) return "uploaded" as const;
+  if (status.includes("process")) return "processing" as const;
   return "submitted" as const;
 }
-

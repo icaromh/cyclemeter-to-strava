@@ -28,7 +28,7 @@ export function parseOauthState(state: string | null) {
 }
 
 export function validateScopes(scope: string | null) {
-  const accepted = new Set((scope ?? "").split(",").map((item) => item.trim()).filter(Boolean));
+  const accepted = new Set((scope ?? "").split(/[,\s]+/).map((item) => item.trim()).filter(Boolean));
   const missing = requiredScopes.filter((required) => !accepted.has(required));
   if (missing.length > 0) {
     throw new HttpError(403, "missing_strava_scopes", "Required Strava scopes were not accepted", { missing });
@@ -42,10 +42,8 @@ export async function completeOAuth(input: { code: string; scope: string | null 
   const athleteId = stravaId(token.athlete.id, token.athlete.id_str);
   if (!athleteId) throw new HttpError(400, "missing_athlete_id", "Strava did not return an athlete id");
 
-  const username =
-    token.athlete.username ??
-    [token.athlete.firstname, token.athlete.lastname].filter(Boolean).join(" ") ??
-    null;
+  const fallbackName = [token.athlete.firstname, token.athlete.lastname].filter(Boolean).join(" ") || null;
+  const username = token.athlete.username ?? fallbackName;
 
   const [existing] = await db.select().from(users).where(eq(users.stravaAthleteId, athleteId)).limit(1);
   if (existing) {
@@ -83,4 +81,3 @@ export async function completeOAuth(input: { code: string; scope: string | null 
 export function frontendRedirectUrl(returnTo: string) {
   return new URL(returnTo, env.FRONTEND_URL).toString();
 }
-
