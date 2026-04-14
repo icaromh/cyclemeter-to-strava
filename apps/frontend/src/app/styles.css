@@ -81,6 +81,10 @@ a {
   flex-wrap: wrap;
 }
 
+.spread {
+  justify-content: space-between;
+}
+
 .muted {
   color: #686862;
 }
@@ -151,6 +155,30 @@ th {
   color: #6d2222;
 }
 
+.error.compact {
+  padding: 8px 10px;
+  font-size: 14px;
+}
+
+.upload-row {
+  display: grid;
+  gap: 8px;
+}
+
+.progress {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #e2e2dc;
+}
+
+.progress > div {
+  height: 100%;
+  border-radius: inherit;
+  background: #246b50;
+  transition: width 160ms ease;
+}
+
 @media (max-width: 680px) {
   .topbar {
     align-items: flex-start;
@@ -161,4 +189,3 @@ th {
     padding: 24px 16px 40px;
   }
 }
-

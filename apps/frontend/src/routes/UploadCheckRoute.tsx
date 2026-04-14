@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQueries } from "@tanstack/react-query";
-import type { FileCheckResult, UploadItem } from "@strava-sync/shared";
+import type { FileCheckResult, UploadItem, UploadStatusResponse } from "@strava-sync/shared";
 import { Button } from "../components/ui/Button";
 import { api } from "../lib/api";
+import { filterFileChecks, getUploadableFileIds, getUploadProgressValue, isUploadTerminal } from "../lib/uploadCheck";
 
 const filters = ["all", "not_found", "match_confirmed", "match_probable", "parse_error"] as const;
 
@@ -25,18 +26,15 @@ export function UploadCheckRoute() {
     queries: uploads.map((upload) => ({
       queryKey: ["upload-status", upload.id],
       queryFn: () => api.uploadStatus(upload.id),
-      refetchInterval: (query: any) => {
+      refetchInterval: (query: { state: { data: UploadStatusResponse | undefined } }) => {
         const status = query.state.data?.uploadStatus ?? upload.uploadStatus;
-        return ["pending", "submitted", "processing"].includes(status) ? 1000 : false;
+        return isUploadTerminal(status) ? false : 1000;
       }
     }))
   });
 
-  const visibleResults = useMemo(
-    () => results.filter((result) => filter === "all" || result.matchStatus === filter),
-    [filter, results]
-  );
-  const missingIds = results.filter((result) => result.matchStatus === "not_found").map((result) => result.uploadedFileId);
+  const visibleResults = useMemo(() => filterFileChecks(results, filter), [filter, results]);
+  const missingIds = useMemo(() => getUploadableFileIds(results), [results]);
 
   return (
     <section className="stack">
@@ -65,7 +63,7 @@ export function UploadCheckRoute() {
         <div className="row">
           {filters.map((item) => (
             <Button key={item} variant={filter === item ? "primary" : "secondary"} onClick={() => setFilter(item)}>
-              {item}
+              {item} ({filterFileChecks(results, item).length})
             </Button>
           ))}
         </div>
@@ -85,12 +83,17 @@ export function UploadCheckRoute() {
           <h2>Uploads</h2>
           {uploads.map((upload, index) => {
             const status = uploadStatuses[index]?.data;
+            const uploadStatus = status?.uploadStatus ?? upload.uploadStatus;
             return (
-              <div className="row" key={upload.id}>
-                <span>{upload.externalId}</span>
-                <span className={badgeClass(status?.uploadStatus ?? upload.uploadStatus)}>
-                  {status?.uploadStatus ?? upload.uploadStatus}
-                </span>
+              <div className="upload-row" key={upload.id}>
+                <div className="row spread">
+                  <span>{upload.externalId}</span>
+                  <span className={badgeClass(uploadStatus)}>{uploadStatus}</span>
+                </div>
+                <div className="progress" aria-label={`Progresso do upload ${upload.externalId}`}>
+                  <div style={{ width: `${getUploadProgressValue(uploadStatus)}%` }} />
+                </div>
+                {status?.errorMessage ? <div className="error compact">{status.errorMessage}</div> : null}
               </div>
             );
           })}
@@ -140,4 +143,3 @@ function badgeClass(status: string) {
   if (["parse_error", "failed", "duplicate"].includes(status)) return "badge bad";
   return "badge";
 }
-
