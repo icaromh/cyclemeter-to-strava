@@ -1,0 +1,31 @@
+{
+  "name": "@strava-sync/backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx src/db/migrate.ts"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.13.8",
+    "@strava-sync/shared": "workspace:*",
+    "drizzle-orm": "^0.39.3",
+    "fast-xml-parser": "^4.5.1",
+    "fit-file-parser": "^1.21.0",
+    "hono": "^4.6.19",
+    "pg": "^8.13.1",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.11.11",
+    "drizzle-kit": "^0.30.4",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.5"
+  }
+}

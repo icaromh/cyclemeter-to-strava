@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: strava-sync-postgres
+    environment:
+      POSTGRES_USER: strava_sync
+      POSTGRES_PASSWORD: strava_sync
+      POSTGRES_DB: strava_sync
+    ports:
+      - "5432:5432"
+    volumes:
+      - strava_sync_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U strava_sync -d strava_sync"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  strava_sync_postgres:
+

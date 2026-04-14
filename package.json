@@ -1,0 +1,26 @@
+{
+  "name": "strava-sync-checker",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "packageManager": "pnpm@9.15.4",
+  "scripts": {
+    "dev": "pnpm --parallel --filter @strava-sync/backend --filter @strava-sync/frontend dev",
+    "dev:backend": "pnpm --filter @strava-sync/backend dev",
+    "dev:frontend": "pnpm --filter @strava-sync/frontend dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "db:generate": "pnpm --filter @strava-sync/backend db:generate",
+    "db:migrate": "pnpm --filter @strava-sync/backend db:migrate",
+    "docker:up": "docker compose -f infra/docker/docker-compose.yml up -d",
+    "docker:down": "docker compose -f infra/docker/docker-compose.yml down"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.5"
+  }
+}
+

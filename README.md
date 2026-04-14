@@ -8,6 +8,7 @@ Aplicacao local para comparar arquivos de atividades (`.gpx`, `.tcx`, `.fit`) co
 - [Schema inicial do banco](docs/database-schema.md)
 - [Contratos da API](docs/api-contracts.md)
 - [Backlog tecnico](docs/technical-backlog.md)
+- [Agentes de implementacao](agents/backend-core.md)
 
 ## MVP
 
@@ -19,3 +20,35 @@ Aplicacao local para comparar arquivos de atividades (`.gpx`, `.tcx`, `.fit`) co
 6. Enviar ao Strava apenas arquivos `not_found`.
 7. Acompanhar o status do processamento do upload.
 
+## Setup local
+
+```bash
+pnpm install
+pnpm docker:up
+cp .env.example .env
+pnpm db:migrate
+pnpm dev
+```
+
+O workspace usa `minimumReleaseAge: 28800` no `pnpm-workspace.yaml`, equivalente a 20 dias em minutos.
+
+## Checks
+
+```bash
+pnpm typecheck
+pnpm test
+pnpm build
+```
+
+## Worktrees dos agentes
+
+Depois de integrar o bootstrap em um branch base, crie os worktrees:
+
+```bash
+git worktree add ../strava-sync-core -b codex/agent-backend-core
+git worktree add ../strava-sync-strava -b codex/agent-strava
+git worktree add ../strava-sync-files -b codex/agent-files-matching
+git worktree add ../strava-sync-frontend -b codex/agent-frontend
+```
+
+Os prompts estao em `agents/`.
