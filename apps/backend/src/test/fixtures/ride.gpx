@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<gpx>
+  <trk>
+    <type>Ride</type>
+    <trkseg>
+      <trkpt lat="40.0" lon="-3.0">
+        <time>2026-04-10T06:30:00Z</time>
+      </trkpt>
+      <trkpt lat="40.001" lon="-3.001">
+        <time>2026-04-10T06:40:00Z</time>
+      </trkpt>
+    </trkseg>
+  </trk>
+</gpx>

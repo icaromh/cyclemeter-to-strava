@@ -23,6 +23,12 @@ function numberOrNull(value: unknown) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function dateOrNull(value: unknown) {
+  if (typeof value !== "string" && typeof value !== "number" && !(value instanceof Date)) return null;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
 export async function parseActivityFile(filename: string, buffer: Buffer): Promise<ParsedFile> {
   const extension = filename.split(".").pop()?.toLowerCase();
   if (extension === "gpx") return parseGpx(buffer.toString("utf8"));
@@ -37,8 +43,8 @@ function parseGpx(xml: string): ParsedFile {
   const trackType = trk?.type ?? null;
   const points = arrayOf(trk?.trkseg).flatMap((segment: any) => arrayOf(segment?.trkpt));
   const times = points.map((point: any) => point?.time).filter(Boolean);
-  const startDate = times[0] ? new Date(times[0]) : null;
-  const endDate = times.at(-1) ? new Date(times.at(-1)) : null;
+  const startDate = dateOrNull(times[0]);
+  const endDate = dateOrNull(times.at(-1));
   const durationSeconds =
     startDate && endDate ? Math.max(0, Math.round((endDate.getTime() - startDate.getTime()) / 1000)) : null;
   const distanceMeters = calculatePointDistance(points);
@@ -51,7 +57,7 @@ function parseTcx(xml: string): ParsedFile {
   const activity = activities[0];
   const laps = arrayOf(activity?.Lap);
   const trackpoints = laps.flatMap((lap: any) => arrayOf(lap?.Track?.Trackpoint));
-  const startDate = activity?.["@_Sport"] && laps[0]?.["@_StartTime"] ? new Date(laps[0]["@_StartTime"]) : null;
+  const startDate = dateOrNull(laps[0]?.["@_StartTime"] ?? trackpoints[0]?.Time);
   const lastTrackpoint = trackpoints.at(-1);
   const distanceMeters =
     numberOrNull(lastTrackpoint?.DistanceMeters) ??
@@ -78,7 +84,7 @@ async function parseFit(buffer: Buffer): Promise<ParsedFile> {
   const records = arrayOf(data.records);
   const start = session.start_time ?? records[0]?.timestamp;
   return {
-    startDate: start ? new Date(start) : null,
+    startDate: dateOrNull(start),
     distanceMeters: numberOrNull(session.total_distance),
     durationSeconds: numberOrNull(session.total_elapsed_time ?? session.total_timer_time),
     sportType: typeof session.sport === "string" ? session.sport : null
@@ -111,4 +117,3 @@ function haversine(lat1: number, lon1: number, lat2: number, lon2: number) {
     Math.cos(phi1) * Math.cos(phi2) * Math.sin(deltaLambda / 2) ** 2;
   return 2 * radius * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
-
